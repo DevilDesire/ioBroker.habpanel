@@ -10,7 +10,7 @@
                 type: 'slider',
                 displayName: 'Slider',
                 icon: 'resize-horizontal',
-                description: 'A slider for setting numerical items'
+                description: 'A slider for setting numerical openHAB items'
             });
         });
 
@@ -50,11 +50,20 @@
 
             var parts = item.state.split(',');
             var value;
-            if (parts.length === 3) {
+            if (parts.length == 3) {
                 // slider received HSB value, use the 3rd (brightness)
                 value = parseFloat(parts[2]);
-            } else if (parts.length === 1) {
-                value = parseFloat(parts[0]);
+            } else if (parts.length == 1) {
+                 var state = parts[0];
+                
+                // Handle dimmer-as-switch case for strings, avoids NaN when ON/OFF sent to dimmers
+                if (state == "ON"){
+                    value = 100;
+                } else if (state == "OFF"){
+                    value = 0;
+                } else {
+                    value = parseFloat(state);
+                }
             } else {
                 return undefined;
             }
@@ -78,6 +87,8 @@
                 showTicksValues: vm.widget.showticksvalues,
                 rightToLeft: vm.widget.inverted,
                 enforceStep: false,
+                readOnly: (vm.widget.readonly) ? vm.widget.readonly : false, 
+                disabled: (vm.widget.disabled) ? vm.widget.disabled : false,
                 translate: function (value) {
                     return (vm.widget.unit) ? value + vm.widget.unit : value;
                 },
@@ -88,22 +99,13 @@
             }
         };
 
-        var initialValue = getValue();
-        vm.value = vm.slider.value = angular.isDefined(getValue()) ? getValue() : 0;
-        $timeout(function() {
-            $scope.$broadcast('rzSliderForceRender');
-        });
-
         function updateValue() {
             var value = getValue();
 
-            if (!isNaN(value) && value != vm.slider.value) {
-                $timeout(function () {
-                    vm.value = vm.slider.value = value;
-                    $scope.$broadcast('rzSliderForceRender');
-                });
-            }
-
+            $timeout(function () {
+                vm.value = vm.slider.value = value;
+                vm.ready = true;
+            });
         }
 
         OHService.onUpdate($scope, vm.widget.item, function () {
@@ -118,7 +120,7 @@
 
     function WidgetSettingsCtrlSlider($scope, $timeout, $rootScope, $modalInstance, widget, OHService) {
         $scope.widget = widget;
-        // $scope.items = OHService.getItems();
+        $scope.items = OHService.getItems();
 
         $scope.form = {
             name: widget.name,
@@ -143,29 +145,7 @@
             backdrop_icon: widget.backdrop_icon,
             backdrop_center: widget.backdrop_center
         };
-        
-        $scope.$watch('form.item', function (item, oldItem) {
-            if (item === oldItem) {
-                return;
-            }
-            OHService.getObject(item).then(function (obj) {
-                if (obj && obj.common) {
-                    if (obj.common.name) {
-                        $scope.form.name = obj.common.name;
-                    }
-                    if (obj.common.unit) {
-                        $scope.form.unit = obj.common.unit;
-                    }
-                    if (obj.common.min !== undefined) {
-                        $scope.form.floor = obj.common.min;
-                    }
-                    if (obj.common.max !== undefined) {
-                        $scope.form.ceil = obj.common.max;
-                    }
-                }
-            });
-        });
-        
+
         $scope.dismiss = function() {
             $modalInstance.dismiss();
         };
@@ -182,5 +162,6 @@
         };
 
     }
+
 
 })();

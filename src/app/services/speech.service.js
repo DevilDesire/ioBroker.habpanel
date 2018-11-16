@@ -92,12 +92,12 @@
             speech.onend = function (e) {
                 console.log('Stopped listening');
                 $rootScope.$broadcast('speech-recognition', { stop_listening: true });
-            };
+            }
 
             speech.onerror = function (e) {
                 $rootScope.$broadcast('speech-recognition', { error: e.error });
                 console.warn('Speech recognition error: ' + e.error);
-            };
+            }
 
             speech.start();
         }

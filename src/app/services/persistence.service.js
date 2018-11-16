@@ -6,7 +6,6 @@
         .service('PersistenceService', PersistenceService);
 
     PersistenceService.$inject = ['$rootScope', '$q', '$filter', 'OH2StorageService', 'localStorageService'];
-    
     function PersistenceService($rootScope, $q, $filter, OH2StorageService, localStorageService) {
         this.getDashboards = getDashboards;
         this.getDashboard = getDashboard;
@@ -55,6 +54,9 @@
                 loadConfigurationFromLocalStorage();
                 deferred.resolve($rootScope.dashboards);
             });
+
+            // the drawer pinned setting is stored in local storage only
+            $rootScope.pinnedDrawer = localStorageService.get("pinneddrawer") === true;
 
             return deferred.promise;
         }
@@ -105,10 +107,10 @@
             saveConfigurationToLocalStorage();
             if ($rootScope.useRegistry && OH2StorageService.getCurrentPanelConfig()) {
                 OH2StorageService.saveCurrentPanelConfig().then(function (data) {
-                    console.log('Saved to service configuration');
+                    console.log('Saved to openHAB 2 service configuration');
                     deferred.resolve();
                 }, function (err) {
-                    console.log('Error while saving to service configuration');
+                    console.log('Error while saving to openHAB 2 configuration');
                     deferred.reject(err);
                 });
             } else {

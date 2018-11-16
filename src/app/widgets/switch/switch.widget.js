@@ -10,7 +10,7 @@
                 type: 'switch',
                 displayName: 'Switch',
                 icon: 'off',
-                description: 'A ON/OFF toggle for ioBroker switches'
+                description: 'A ON/OFF toggle for openHAB switches'
             });
         });
 
@@ -46,25 +46,24 @@
             var item = OHService.getItem(vm.widget.item);
             if (!item || item.state === vm.value) return;
             
-            if (item.state !== true && item.state !== false && item.state !== 'true' && item.state !== 'false' && item.state !== 0 && item.state !== 1 && item.state !== '0' && item.state !== '1') {
+            if (item.state != 'ON' && item.state != 'OFF') {
                 // deal with non bool values being sent to switchitems...
                 var parts = item.state.split(',');
 
-                if (parts.length === 3 && parseInt(parts[2]) > 0) {
+                if (parts.length == 3 && parseInt(parts[2]) > 0) {
                     // HSB value with brightness > 0
-                    vm.value = true;
-                } else if (parts.length === 1 && parseInt(parts[0]) > 0) {
+                    vm.value = 'ON';
+                } else if (parts.length == 1 && parseInt(parts[0]) > 0) {
                     // numerical value (assuming brightness) > 0
-                    vm.value = true;
+                    vm.value = 'ON';
                 } else {
-                    vm.value = false;
+                    vm.value = 'OFF';
                 }
             } else {
-                item.state = (item.state === true || item.state === 'true' || item.state === 1 || item.state === '1');
-                vm.value = OHService.getItem(vm.widget.item).state;
+                vm.value = item.state;
+                vm.label = item.transformedState || item.state;
             }
-            vm.text = vm.value ? 'ON' : 'OFF';
-
+            
         }
 
         OHService.onUpdate($scope, vm.widget.item, function () {
@@ -72,15 +71,15 @@
         });
 
         vm.toggleSwitch = function () {
-            if (vm.value === true) {
-                OHService.sendCmd(this.widget.item, false);
+            if (vm.value == "ON") {
+                OHService.sendCmd(this.widget.item, "OFF");
             } else {
-                OHService.sendCmd(this.widget.item, true);
+                OHService.sendCmd(this.widget.item, "ON");
             }
-        };
+        }
 
         vm.valueAsBool = function () {
-            return vm.value === true;
+            return vm.value == 'ON';
         }
     }
 
@@ -89,7 +88,7 @@
 
     function WidgetSettingsCtrlSwitch($scope, $timeout, $rootScope, $modalInstance, widget, OHService) {
         $scope.widget = widget;
-        // $scope.items = OHService.getItems();
+        $scope.items = OHService.getItems();
 
         $scope.form = {
             name            : widget.name,
@@ -108,20 +107,7 @@
             icon            : widget.icon,
             icon_size       : widget.icon_size
         };
-        
-        $scope.$watch('form.item', function (item, oldItem) {
-            if (item === oldItem) {
-                return;
-            }
-            OHService.getObject(item).then(function (obj) {
-                if (obj && obj.common) {
-                    if (obj.common.name) {
-                        $scope.form.name = obj.common.name;
-                    }
-                }
-            });
-        });
-        
+
         $scope.dismiss = function() {
             $modalInstance.dismiss();
         };

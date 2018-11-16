@@ -10,7 +10,7 @@
                 type: 'dummy',
                 displayName: 'Dummy',
                 icon: 'text-color',
-                description: 'A dummy widget - displays the value of an item'
+                description: 'A dummy widget - displays the value of an openHAB item'
             });
         });
 
@@ -47,17 +47,27 @@
                 vm.value = "N/A";
                 return;
             }
-            var value = item.state;
+            var value = item.transformedState || item.state;
             if (vm.widget.format) {
                 if (item.type === "DateTime" || item.type === "DateTimeItem") {
                     value = $filter('date')(value, vm.widget.format);
+                } else if (item.type.indexOf('Number:') === 0 && value.indexOf(' ') > 0) {
+                    var format = vm.widget.format.replace('%unit%', value.split(' ')[1].replace('%', '%%'));
+                    value = sprintf(format, value.split(' ')[0]);
                 } else {
                     value = sprintf(vm.widget.format, value);
                 }
             }
-            if (vm.widget.useserverformat && item.stateDescription && item.stateDescription.pattern)
-                value = sprintf(item.stateDescription.pattern, value);
+            if (vm.widget.useserverformat && item.stateDescription && item.stateDescription.pattern) {
+                if (item.type.indexOf('Number:') === 0 && value.indexOf(' ') > 0) {
+                    var format = item.stateDescription.pattern.replace('%unit%', value.split(' ')[1].replace('%', '%%'));
+                    value = sprintf(format, value.split(' ')[0]);
+                } else {
+                    value = sprintf(item.stateDescription.pattern, value);
+                }
+            }
             vm.value = value;
+            vm.state = item.state;
         }
 
         OHService.onUpdate($scope, vm.widget.item, function () {
@@ -72,7 +82,7 @@
 
     function WidgetSettingsCtrlDummy($scope, $timeout, $rootScope, $modalInstance, widget, OHService) {
         $scope.widget = widget;
-        // $scope.items = OHService.getItems();
+        $scope.items = OHService.getItems();
 
         $scope.form = {
             name             : widget.name,
@@ -97,20 +107,7 @@
             icon_nolinebreak : widget.icon_nolinebreak,
             icon_replacestext: widget.icon_replacestext
         };
-        
-        $scope.$watch('form.item', function (item, oldItem) {
-            if (item === oldItem) {
-                return;
-            }
-            OHService.getObject(item).then(function (obj) {
-                if (obj && obj.common) {
-                    if (obj.common.name) {
-                        $scope.form.name = obj.common.name;
-                    }
-                }
-            });
-        });
-        
+
         $scope.dismiss = function() {
             $modalInstance.dismiss();
         };

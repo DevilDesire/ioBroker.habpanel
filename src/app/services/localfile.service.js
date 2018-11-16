@@ -43,7 +43,7 @@
             restrict: 'A',
             scope: {
                 localFileSelect: '=',
-                onFileSelected: '='
+                onFileSelected: '=',
             }
         };
         return directive;
